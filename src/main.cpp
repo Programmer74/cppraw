@@ -24,7 +24,13 @@ int image_pane_offset_x = 0;
 int image_pane_offset_y = 0;
 double image_pane_scale = 0;
 bool autoscale_performed = false;
-bool force_centering_image = true;
+bool force_centering_image = false;
+
+int image_pane_mouse_x = -1;
+int image_pane_mouse_y = -1;
+
+int image_pane_mouse_down_x = -1;
+int image_pane_mouse_down_y = -1;
 
 void set_color(int x, int y, double r, double g, double b) {
     image[x * image_height + y].r = r;
@@ -137,14 +143,15 @@ void load_image() {
         }
 }
 
-bool on_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
+bool on_imagepane_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
     Gtk::Allocation allocation = gImage->get_allocation();
     const int pane_width = allocation.get_width();
     const int pane_height = allocation.get_height();
 
     Glib::RefPtr<Gdk::Pixbuf> pixbuf = Gdk::Pixbuf::create_from_data(static_image_buf,
-                                                                    Gdk::COLORSPACE_RGB, false, 8, pane_width, pane_height,
-                                                                    pane_width * 3);
+                                                                     Gdk::COLORSPACE_RGB, false, 8, pane_width,
+                                                                     pane_height,
+                                                                     pane_width * 3);
 
     if (!autoscale_performed) {
         double kx = image_width * 1.0 / pane_width;
@@ -169,7 +176,9 @@ bool on_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
             int sx = (x - image_pane_offset_x) * image_pane_scale;
             int sy = (y - image_pane_offset_y) * image_pane_scale;
             if ((sx < 0) || (sy < 0) || (sx >= image_width) || (sy >= image_height)) {
-                r = 0; g = 0; b = 0;
+                r = 0;
+                g = 0;
+                b = 0;
             } else {
                 get_color(sx, sy, &r, &g, &b);
             }
@@ -183,6 +192,48 @@ bool on_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
     cr->rectangle(0, 0, pixbuf->get_width(), pixbuf->get_height());
     cr->fill();
 
+    return true;
+}
+
+bool on_imagepane_scroll(GdkEventScroll *e) {
+    if (e->direction == GDK_SCROLL_UP) {
+        image_pane_scale += 0.1;
+        if (image_pane_scale > 10) image_pane_scale = 10;
+    } else if (e->direction == GDK_SCROLL_DOWN) {
+        image_pane_scale -= 0.1;
+        if (image_pane_scale < 0.5) image_pane_scale = 0.5;
+    }
+    gImage->queue_draw();
+    std::cout << "Scale: " << image_pane_scale << std::endl;
+
+    return true;
+}
+
+bool on_imagepane_motion(GdkEventMotion *e) {
+    image_pane_mouse_x = e->x;
+    image_pane_mouse_y = e->y;
+
+    int ox = (image_pane_mouse_down_x - image_pane_mouse_x);
+    int oy = (image_pane_mouse_down_y - image_pane_mouse_y);
+
+    image_pane_offset_x -= ox;
+    image_pane_offset_y -= oy;
+
+    image_pane_mouse_down_x = image_pane_mouse_x;
+    image_pane_mouse_down_y = image_pane_mouse_y;
+
+    std::cout << "offsets " << image_pane_offset_x << " " << image_pane_offset_y << std::endl;
+
+    gImage->queue_draw();
+
+    return true;
+}
+
+bool on_imagepane_press_event(GdkEventButton *e) {
+    if ((e->type == GDK_BUTTON_PRESS) && (e->button == 1)) {
+        image_pane_mouse_down_x = e->x;
+        image_pane_mouse_down_y = e->y;
+    }
     return true;
 }
 
@@ -214,7 +265,12 @@ int main(int argc, char **argv) {
         refBuilder->get_widget("gImage", gImage);
         if (gImage) {
             std::cout << "lel" << std::endl;
-            gImage->signal_draw().connect(sigc::ptr_fun(on_draw));
+            gImage->signal_draw().connect(sigc::ptr_fun(on_imagepane_draw));
+            gImage->add_events(Gdk::SCROLL_MASK | Gdk::BUTTON1_MOTION_MASK | Gdk::BUTTON_PRESS_MASK |
+                               Gdk::POINTER_MOTION_HINT_MASK);
+            gImage->signal_scroll_event().connect(sigc::ptr_fun(on_imagepane_scroll));
+            gImage->signal_motion_notify_event().connect(sigc::ptr_fun(on_imagepane_motion));
+            gImage->signal_button_press_event().connect(sigc::ptr_fun(on_imagepane_press_event));
         }
 
         app->run(*pWindow);
