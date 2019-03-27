@@ -20,6 +20,12 @@ pixel_t *image = nullptr;
 int image_width = 0;
 int image_height = 0;
 
+int image_pane_offset_x = 0;
+int image_pane_offset_y = 0;
+double image_pane_scale = 0;
+bool autoscale_performed = false;
+bool force_centering_image = true;
+
 void set_color(int x, int y, double r, double g, double b) {
     image[x * image_height + y].r = r;
     image[x * image_height + y].g = g;
@@ -46,7 +52,7 @@ int atoi(std::vector<char> data, int offset) {
     return res;
 }
 
-void read_file() {
+void load_image() {
     std::cout << "I am in " << getenv("PWD") << std::endl;
     std::ifstream infile("../../bayered.pgm", std::ifstream::binary);
 
@@ -133,25 +139,43 @@ void read_file() {
 
 bool on_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
     Gtk::Allocation allocation = gImage->get_allocation();
-    const int width = allocation.get_width();
-    const int height = allocation.get_height();
+    const int pane_width = allocation.get_width();
+    const int pane_height = allocation.get_height();
 
     Glib::RefPtr<Gdk::Pixbuf> pixbuf = Gdk::Pixbuf::create_from_data(static_image_buf,
-                                                                    Gdk::COLORSPACE_RGB, false, 8, width, height,
-                                                                    width * 3);
+                                                                    Gdk::COLORSPACE_RGB, false, 8, pane_width, pane_height,
+                                                                    pane_width * 3);
 
-    double kx = image_width * 1.0 / width;
-    double ky = image_height * 1.0 / height;
+    if (!autoscale_performed) {
+        double kx = image_width * 1.0 / pane_width;
+        double ky = image_height * 1.0 / pane_height;
 
-    for (int x = 0; x < width; x++) {
-        for (int y = 0; y < height; y++) {
+        image_pane_scale = std::max(kx, ky);
+
+        autoscale_performed = true;
+    }
+    if (force_centering_image) {
+        int nw = image_width / image_pane_scale;
+        int nh = image_height / image_pane_scale;
+
+        image_pane_offset_x = (pane_width - nw) / 2;
+        image_pane_offset_y = (pane_height - nh) / 2;
+
+    }
+
+    for (int x = 0; x < pane_width; x++) {
+        for (int y = 0; y < pane_height; y++) {
             double r, g, b;
-            int sx = x * kx;
-            int sy = y * ky;
-            get_color(sx, sy, &r, &g, &b);
-            static_image_buf[y * width * 3 + x * 3] = (uint8_t) (r * 255.0);
-            static_image_buf[y * width * 3 + x * 3 + 1] = (uint8_t) (g * 255.0);
-            static_image_buf[y * width * 3 + x * 3 + 2] = (uint8_t) (b * 255.0);
+            int sx = (x - image_pane_offset_x) * image_pane_scale;
+            int sy = (y - image_pane_offset_y) * image_pane_scale;
+            if ((sx < 0) || (sy < 0) || (sx >= image_width) || (sy >= image_height)) {
+                r = 0; g = 0; b = 0;
+            } else {
+                get_color(sx, sy, &r, &g, &b);
+            }
+            static_image_buf[y * pane_width * 3 + x * 3] = (uint8_t) (r * 255.0);
+            static_image_buf[y * pane_width * 3 + x * 3 + 1] = (uint8_t) (g * 255.0);
+            static_image_buf[y * pane_width * 3 + x * 3 + 2] = (uint8_t) (b * 255.0);
         }
     }
 
@@ -163,7 +187,7 @@ bool on_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
 }
 
 int main(int argc, char **argv) {
-    read_file();
+    load_image();
     auto app = Gtk::Application::create(argc, argv, "org.gtkmm.example");
 
     auto refBuilder = Gtk::Builder::create();
