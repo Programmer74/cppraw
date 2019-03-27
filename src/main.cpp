@@ -44,6 +44,24 @@ void get_color(int x, int y, double *r, double *g, double *b) {
     *b = image[x * image_height + y].b;
 }
 
+double adjust_value(double* original) {
+    *original = *original * 2;
+}
+
+void get_color_adjusted(int x, int y, double *r, double *g, double *b) {
+    get_color(x, y, r, g, b);
+    adjust_value(r);
+    adjust_value(g);
+    adjust_value(b);
+}
+
+uint8_t get_safe_val(double original) {
+    int val = original * 255.0;
+    if (val > 255) val = 255;
+    if (val < 0) val = 0;
+    return val;
+}
+
 int atoi(std::vector<char> data, int offset) {
     int res = 0;
     int i = offset;
@@ -180,11 +198,11 @@ bool on_imagepane_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
                 g = 0;
                 b = 0;
             } else {
-                get_color(sx, sy, &r, &g, &b);
+                get_color_adjusted(sx, sy, &r, &g, &b);
             }
-            static_image_buf[y * pane_width * 3 + x * 3] = (uint8_t) (r * 255.0);
-            static_image_buf[y * pane_width * 3 + x * 3 + 1] = (uint8_t) (g * 255.0);
-            static_image_buf[y * pane_width * 3 + x * 3 + 2] = (uint8_t) (b * 255.0);
+            static_image_buf[y * pane_width * 3 + x * 3] = get_safe_val(r);
+            static_image_buf[y * pane_width * 3 + x * 3 + 1] = get_safe_val(g);
+            static_image_buf[y * pane_width * 3 + x * 3 + 2] = get_safe_val(b);
         }
     }
 
