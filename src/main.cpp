@@ -7,6 +7,7 @@
 
 Gtk::ApplicationWindow *pWindow = nullptr;
 Gtk::DrawingArea *gImage = nullptr;
+Gtk::CheckButton *chbAutoCenter = nullptr;
 
 uint8_t *static_image_buf = new uint8_t[1920 * 1080 * 3];
 
@@ -24,7 +25,8 @@ int image_pane_offset_x = 0;
 int image_pane_offset_y = 0;
 double image_pane_scale = 0;
 bool autoscale_performed = false;
-bool force_centering_image = false;
+bool force_centering_image = true;
+bool force_autoscaling_image = true;
 
 int image_pane_mouse_x = -1;
 int image_pane_mouse_y = -1;
@@ -171,7 +173,7 @@ bool on_imagepane_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
                                                                      pane_height,
                                                                      pane_width * 3);
 
-    if (!autoscale_performed) {
+    if (!autoscale_performed || force_autoscaling_image) {
         double kx = image_width * 1.0 / pane_width;
         double ky = image_height * 1.0 / pane_height;
 
@@ -214,6 +216,7 @@ bool on_imagepane_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
 }
 
 bool on_imagepane_scroll(GdkEventScroll *e) {
+    force_autoscaling_image = false;
     if (e->direction == GDK_SCROLL_UP) {
         image_pane_scale += 0.1;
         if (image_pane_scale > 10) image_pane_scale = 10;
@@ -255,6 +258,13 @@ bool on_imagepane_press_event(GdkEventButton *e) {
     return true;
 }
 
+void on_autocenter_pressed() {
+    std::cout << "Autocenter clicked" << std::endl;
+    force_centering_image = chbAutoCenter->get_active();
+    force_autoscaling_image = chbAutoCenter->get_active();
+    gImage->queue_draw();
+}
+
 int main(int argc, char **argv) {
     load_image();
     auto app = Gtk::Application::create(argc, argv, "org.gtkmm.example");
@@ -289,6 +299,11 @@ int main(int argc, char **argv) {
             gImage->signal_scroll_event().connect(sigc::ptr_fun(on_imagepane_scroll));
             gImage->signal_motion_notify_event().connect(sigc::ptr_fun(on_imagepane_motion));
             gImage->signal_button_press_event().connect(sigc::ptr_fun(on_imagepane_press_event));
+        }
+
+        refBuilder->get_widget("chbAutoCenter", chbAutoCenter);
+        if (chbAutoCenter) {
+            chbAutoCenter->signal_toggled().connect(sigc::ptr_fun(on_autocenter_pressed));
         }
 
         app->run(*pWindow);
