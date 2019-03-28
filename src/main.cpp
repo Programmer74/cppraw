@@ -8,6 +8,7 @@
 Gtk::ApplicationWindow *pWindow = nullptr;
 Gtk::DrawingArea *gImage = nullptr;
 Gtk::CheckButton *chbAutoCenter = nullptr;
+Gtk::ScaleButton *sldExposure = nullptr;
 
 uint8_t *static_image_buf = new uint8_t[1920 * 1080 * 3];
 
@@ -34,6 +35,10 @@ int image_pane_mouse_y = -1;
 int image_pane_mouse_down_x = -1;
 int image_pane_mouse_down_y = -1;
 
+double exposureStop = 0;
+double gGamma = 1 / 2.2222;
+double gA = 1.0;
+
 void set_color(int x, int y, double r, double g, double b) {
     image[x * image_height + y].r = r;
     image[x * image_height + y].g = g;
@@ -47,7 +52,7 @@ void get_color(int x, int y, double *r, double *g, double *b) {
 }
 
 double adjust_value(double* original) {
-    *original = *original * 2;
+    *original = *original * std::pow(2, exposureStop);
 }
 
 void get_color_adjusted(int x, int y, double *r, double *g, double *b) {
@@ -159,6 +164,11 @@ void load_image() {
             gv = pgmPixels[r * cols + c + 1] * 1.0 / maxValue;
             bv = pgmPixels[r * cols + c + 2] * 1.0 / maxValue;
 
+            //gamma correction (slow in runtime)
+            rv = gA * std::pow(rv, gGamma);
+            gv = gA * std::pow(gv, gGamma);
+            bv = gA * std::pow(bv, gGamma);
+
             set_color(x, r, rv, gv, bv);
         }
 }
@@ -265,6 +275,12 @@ void on_autocenter_pressed() {
     gImage->queue_draw();
 }
 
+void on_slider_changed(double val) {
+    exposureStop = (val - 50.0) / 25.0;
+    std::cout << "exposureStop is " << exposureStop << std::endl;
+    gImage->queue_draw();
+}
+
 int main(int argc, char **argv) {
     load_image();
     auto app = Gtk::Application::create(argc, argv, "org.gtkmm.example");
@@ -305,6 +321,9 @@ int main(int argc, char **argv) {
         if (chbAutoCenter) {
             chbAutoCenter->signal_toggled().connect(sigc::ptr_fun(on_autocenter_pressed));
         }
+
+        refBuilder->get_widget("sldExposure", sldExposure);
+        sldExposure->signal_value_changed().connect(sigc::ptr_fun(on_slider_changed));
 
         app->run(*pWindow);
     }
