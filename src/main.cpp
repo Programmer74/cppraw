@@ -10,7 +10,12 @@
 #include "CustomSlider.h"
 
 Gtk::ApplicationWindow *pWindow = nullptr;
+
 Gtk::DrawingArea *gImage = nullptr;
+Glib::RefPtr<Gdk::Pixbuf> pixbuf;
+int old_gimage_width = -1;
+int old_gimage_height = -1;
+
 Gtk::DrawingArea *gCustomSlidersPane = nullptr;
 Gtk::CheckButton *chbAutoCenter = nullptr;
 Gtk::ScaleButton *sldExposure = nullptr;
@@ -54,11 +59,12 @@ bool on_sliderspane_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
 }
 
 bool on_sliderspane_press_event(GdkEventButton *e) {
-
     int index = (int)(e->y) / slider_height;
     if (index < sliders.size()) {
         mouse_down_slider_index = index;
-        sliders[index].mouseDown(e->x, (int)(e->y) % slider_height);
+        Gtk::Allocation allocation = gCustomSlidersPane->get_allocation();
+        const int width = allocation.get_width();
+        sliders[index].mouseDown(e->x, (int)(e->y) % slider_height, width, slider_height);
     }
     gCustomSlidersPane->queue_draw();
     return true;
@@ -75,10 +81,12 @@ bool on_sliderpane_motion(GdkEventMotion *e) {
         if (index != mouse_down_slider_index) {
             mouse_down_slider_index = -1;
         }
+        Gtk::Allocation allocation = gCustomSlidersPane->get_allocation();
+        const int width = allocation.get_width();
         if (mouse_down_slider_index != -1) {
-            sliders[index].mouseDragged(e->x, (int)(e->y) % slider_height);
+            sliders[index].mouseDragged(e->x, (int)(e->y) % slider_height, width, slider_height);
         } else {
-            sliders[index].mouseMoved(e->x, (int)(e->y) % slider_height);
+            sliders[index].mouseMoved(e->x, (int)(e->y) % slider_height, width, slider_height);
         }
     }
     gCustomSlidersPane->queue_draw();
@@ -101,10 +109,12 @@ bool on_imagepane_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
 
     doubleImage->paintOnBuf(static_image_buf_for_preview, pane_width, pane_height);
 
-    Glib::RefPtr<Gdk::Pixbuf> pixbuf = Gdk::Pixbuf::create_from_data(static_image_buf_for_preview,
-                                                                     Gdk::COLORSPACE_RGB, false, 8, pane_width,
-                                                                     pane_height,
-                                                                     pane_width * 3);
+    if ((old_gimage_width != pane_width) || (old_gimage_height != pane_height)) {
+        pixbuf = Gdk::Pixbuf::create_from_data(static_image_buf_for_preview,
+                                               Gdk::COLORSPACE_RGB, false, 8, pane_width,
+                                               pane_height,
+                                               pane_width * 3);
+    }
 
     Gdk::Cairo::set_source_pixbuf(cr, pixbuf, 0, 0);
     cr->rectangle(0, 0, pixbuf->get_width(), pixbuf->get_height());
@@ -112,7 +122,6 @@ bool on_imagepane_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
 
     return true;
 }
-
 
 bool on_imagepane_scroll(GdkEventScroll *e) {
     doubleImage->setForceAutoscalingImage(false);
@@ -223,6 +232,16 @@ int main(int argc, char **argv) {
 
         sliders.emplace_back(CustomSlider("Exposure", -2.0, 2.0, 0.0, [&](double val) {
             doubleImage->set_exposure(val);
+            gImage->queue_draw();
+        }));
+
+        sliders.emplace_back(CustomSlider("Brightness", -1.0, 1.0, 0.0, [&](double val) {
+            doubleImage->set_brightness(val);
+            gImage->queue_draw();
+        }));
+
+        sliders.emplace_back(CustomSlider("Contrast", 0.0, 2.0, 1.0, [&](double val) {
+            doubleImage->set_contrast(val);
             gImage->queue_draw();
         }));
 

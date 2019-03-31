@@ -11,6 +11,8 @@ typedef struct {
 pixel_t *image;
 
 double exposureStop = 0;
+double brightness = 0;
+double contrast = 1.0;
 
 void DoubleImage::set_color(int x, int y, double r, double g, double b) {
     image[x * image_height + y].r = r;
@@ -24,8 +26,18 @@ void DoubleImage::get_color(int x, int y, double *r, double *g, double *b) {
     *b = image[x * image_height + y].b;
 }
 
-double adjust_value(double* original) {
+inline double adjust_exposure(double* original) {
     *original = *original * std::pow(2, exposureStop);
+}
+
+inline double adjust_bc(double* original) {
+    double contrasted = (*original - 0.5) * contrast + 0.5;
+    *original = contrasted + brightness;
+}
+
+inline double adjust_value(double* original) {
+    adjust_exposure(original);
+    adjust_bc(original);
 }
 
 void DoubleImage::get_color_adjusted(int x, int y, double *r, double *g, double *b) {
@@ -43,6 +55,14 @@ DoubleImage::DoubleImage(int _width, int _height) {
 
 void DoubleImage::set_exposure(double value) {
     exposureStop = value;
+}
+
+void DoubleImage::set_brightness(double value) {
+    brightness = value;
+}
+
+void DoubleImage::set_contrast(double value) {
+    contrast = value;
 }
 
 void DoubleImage::setForceCenteringImage(bool forceCenteringImage) {

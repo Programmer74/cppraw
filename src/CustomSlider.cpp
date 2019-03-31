@@ -1,6 +1,9 @@
 #include <iostream>
 #include "CustomSlider.h"
 
+const int marginLeft = 5;
+const int marginRight = 5;
+
 CustomSlider::~CustomSlider() {
 
 }
@@ -9,26 +12,15 @@ double CustomSlider::getValue() {
     return value;
 }
 
-int marginLeft = 5;
-int marginRight = 5;
-
-int last_width = 0;
-int last_height = 0;
-
-bool mouse_moved_over_dragger = false;
-
 int CustomSlider::getDraggerX(double value, int w) {
     return marginLeft + (value - from) / (to - from) * (w - marginLeft - marginRight);
 }
 
-double CustomSlider::getValue(int draggerX) {
-    return (draggerX - marginLeft) * (to - from) / (last_width - marginLeft - marginRight) + from;
+double CustomSlider::getValue(int draggerX, int w) {
+    return (draggerX - marginLeft) * (to - from) / (w - marginLeft - marginRight) + from;
 }
 
 void CustomSlider::draw(int x, int y, int w, int h, const Cairo::RefPtr<Cairo::Context> &cr) {
-    last_width = w;
-    last_height = h;
-
     cr->set_source_rgb(1, 1, 1);
     cr->rectangle(x, y, w, h);
     cr->fill();
@@ -49,7 +41,7 @@ void CustomSlider::draw(int x, int y, int w, int h, const Cairo::RefPtr<Cairo::C
 
     cr->set_line_width(1.0);
     cr->move_to(marginLeft, y + h / 2);
-    cr->line_to(w - marginRight, h / 2);
+    cr->line_to(w - marginRight, y + h / 2);
 
     cr->move_to(marginLeft, y + h / 2 - 4);
     cr->line_to(marginLeft, y + h / 2 + 4);
@@ -60,31 +52,28 @@ void CustomSlider::draw(int x, int y, int w, int h, const Cairo::RefPtr<Cairo::C
     cr->stroke();
 
     int valX = getDraggerX(value, w);
-    if (mouse_moved_over_dragger) {
+    if (mouseMovedOverDragger) {
         cr->set_source_rgb(1, 0, 0);
     } else {
         cr->set_source_rgb(0, 0, 0);
     }
-    cr->rectangle(valX - 2, h / 2 - 2, 4, 4);
+    cr->rectangle(valX - 2, y + h / 2 - 2, 4, 4);
     cr->fill();
 }
 
-int mouseDownX = 0;
-int mouseDownY = 0;
-bool clickedValueDragger = false;
-void CustomSlider::mouseDown(int x, int y) {
+void CustomSlider::mouseDown(int x, int y, int w, int h) {
     mouseDownX = x;
     mouseDownY = y;
-    clickedValueDragger = ((abs(getDraggerX(value, last_width) - x) < 10) &&
-            (abs(last_height / 2 - y) < 10));
+    clickedValueDragger = ((abs(getDraggerX(value, w) - x) < 10) &&
+            (abs(h / 2 - y) < 10));
 }
 
-void CustomSlider::mouseDragged(int x, int y) {
+void CustomSlider::mouseDragged(int x, int y, int w, int h) {
     int deltaX = x - mouseDownX;
     int deltaY = y - mouseDownY;
 
     if (clickedValueDragger) {
-        setValue(getValue(x));
+        setValue(getValue(x, w));
     } else {
         setValue(value + deltaX * (to - from) / 700);
     }
@@ -93,9 +82,9 @@ void CustomSlider::mouseDragged(int x, int y) {
     mouseDownY = y;
 }
 
-void CustomSlider::mouseMoved(int x, int y) {
-    mouse_moved_over_dragger = ((abs(getDraggerX(value, last_width) - x) < 10) &&
-                           (abs(last_height / 2 - y) < 10));
+void CustomSlider::mouseMoved(int x, int y, int w, int h) {
+    mouseMovedOverDragger = ((abs(getDraggerX(value, w) - x) < 10) &&
+                           (abs(h / 2 - y) < 10));
 }
 
 void CustomSlider::setValue(double newvalue) {
@@ -106,5 +95,5 @@ void CustomSlider::setValue(double newvalue) {
 }
 
 void CustomSlider::mouseScrolled(int direction) {
-    setValue(value + (1 - 2 * direction) * (to - from) / 2000);
+    setValue(value + (direction) * (to - from) / 2000);
 }

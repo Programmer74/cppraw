@@ -20,6 +20,10 @@ public:
 
     void set_exposure(double value);
 
+    void set_brightness(double value);
+
+    void set_contrast(double value);
+
     void setForceCenteringImage(bool forceCenteringImage);
 
     void setForceAutoscalingImage(bool forceAutoscalingImage);
