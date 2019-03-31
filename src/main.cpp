@@ -64,7 +64,11 @@ bool on_sliderspane_press_event(GdkEventButton *e) {
         mouse_down_slider_index = index;
         Gtk::Allocation allocation = gCustomSlidersPane->get_allocation();
         const int width = allocation.get_width();
-        sliders[index].mouseDown(e->x, (int)(e->y) % slider_height, width, slider_height);
+        if (e->type == GDK_DOUBLE_BUTTON_PRESS) {
+            sliders[index].doubleClick(e->x, (int) (e->y) % slider_height, width, slider_height);
+        } else {
+            sliders[index].mouseDown(e->x, (int) (e->y) % slider_height, width, slider_height);
+        }
     }
     gCustomSlidersPane->queue_draw();
     return true;
@@ -96,7 +100,7 @@ bool on_sliderpane_motion(GdkEventMotion *e) {
 bool on_sliderpane_scroll(GdkEventScroll *e) {
     int index = (int)(e->y) / slider_height;
     if (index < sliders.size()) {
-        sliders[index].mouseScrolled(e->direction);
+        sliders[index].mouseScrolled(e->direction == GDK_SCROLL_UP ? 1 : -1);
     }
     gCustomSlidersPane->queue_draw();
     return true;
@@ -233,23 +237,23 @@ int main(int argc, char **argv) {
         sliders.emplace_back(CustomSlider("Exposure", -2.0, 2.0, 0.0, [&](double val) {
             doubleImage->set_exposure(val);
             gImage->queue_draw();
-        }));
+        }, 0.3, 0.3, 0.3, 0.7, 0.7, 0.7));
 
         sliders.emplace_back(CustomSlider("Brightness", -1.0, 1.0, 0.0, [&](double val) {
             doubleImage->set_brightness(val);
             gImage->queue_draw();
-        }));
+        }, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0));
 
         sliders.emplace_back(CustomSlider("Contrast", 0.0, 2.0, 1.0, [&](double val) {
             doubleImage->set_contrast(val);
             gImage->queue_draw();
-        }));
+        }, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0));
 
         refBuilder->get_widget("gCustomSlidersPane", gCustomSlidersPane);
         if (gCustomSlidersPane) {
             std::cout << "kex" << std::endl;
 
-            gCustomSlidersPane->add_events(Gdk::ALL_EVENTS_MASK);
+            gCustomSlidersPane->add_events(Gdk::SCROLL_MASK | Gdk::BUTTON1_MOTION_MASK | Gdk::BUTTON_PRESS_MASK | Gdk::POINTER_MOTION_MASK);
 
             gCustomSlidersPane->signal_draw().connect(sigc::ptr_fun(on_sliderspane_draw));
             gCustomSlidersPane->signal_scroll_event().connect(sigc::ptr_fun(on_sliderpane_scroll));

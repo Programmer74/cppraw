@@ -16,8 +16,12 @@ int CustomSlider::getDraggerX(double value, int w) {
     return marginLeft + (value - from) / (to - from) * (w - marginLeft - marginRight);
 }
 
-double CustomSlider::getValue(int draggerX, int w) {
-    return (draggerX - marginLeft) * (to - from) / (w - marginLeft - marginRight) + from;
+inline double CustomSlider::getValue(int draggerX, int w) {
+    return getValue(draggerX, w, from, to);
+}
+
+inline double CustomSlider::getValue(int draggerX, int w, double cfrom, double cto) {
+    return (draggerX - marginLeft) * (cto - cfrom) / (w - marginLeft - marginRight) + cfrom;
 }
 
 void CustomSlider::draw(int x, int y, int w, int h, const Cairo::RefPtr<Cairo::Context> &cr) {
@@ -39,10 +43,32 @@ void CustomSlider::draw(int x, int y, int w, int h, const Cairo::RefPtr<Cairo::C
     cr->text_path(std::to_string(to));
     cr->fill();
 
-    cr->set_line_width(1.0);
-    cr->move_to(marginLeft, y + h / 2);
-    cr->line_to(w - marginRight, y + h / 2);
+    //draw gradiented line
+    int cy = y + h / 2 - 1;
+    for (int cx = marginLeft; cx < w - marginLeft - marginRight; cx += 2) {
+        cr->set_source_rgb(
+                getValue(cx, w, rlA, rrA),
+                getValue(cx, w, glA, grA),
+                getValue(cx, w, blA, brA)
+        );
+        cr->rectangle(cx, cy, 2, 2);
+        cr->fill();
+        cx += 2;
+        cr->set_source_rgb(
+                getValue(cx, w, rlB, rrB),
+                getValue(cx, w, glB, grB),
+                getValue(cx, w, blB, brB)
+        );
+        cr->rectangle(cx, cy, 2, 2);
+        cr->fill();
+    }
 
+    //draw normal line
+    //cr->move_to(marginLeft, y + h / 2);
+    //cr->line_to(w - marginRight, y + h / 2);
+
+    cr->set_source_rgb(0, 0, 0);
+    cr->set_line_width(1.0);
     cr->move_to(marginLeft, y + h / 2 - 4);
     cr->line_to(marginLeft, y + h / 2 + 4);
 
@@ -59,6 +85,10 @@ void CustomSlider::draw(int x, int y, int w, int h, const Cairo::RefPtr<Cairo::C
     }
     cr->rectangle(valX - 2, y + h / 2 - 2, 4, 4);
     cr->fill();
+}
+
+void CustomSlider::doubleClick(int x, int y, int w, int h) {
+    setValue(defaultValue);
 }
 
 void CustomSlider::mouseDown(int x, int y, int w, int h) {
