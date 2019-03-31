@@ -4,17 +4,95 @@
 #include <fstream>
 #include <sstream>
 #include <stdint.h>
+#include <vector>
 #include "DoubleImage.h"
 #include "DoubleImageLoader.h"
+#include "CustomSlider.h"
 
 Gtk::ApplicationWindow *pWindow = nullptr;
 Gtk::DrawingArea *gImage = nullptr;
+Gtk::DrawingArea *gCustomSlidersPane = nullptr;
 Gtk::CheckButton *chbAutoCenter = nullptr;
 Gtk::ScaleButton *sldExposure = nullptr;
-
 DoubleImage *doubleImage = nullptr;
 
 uint8_t *static_image_buf_for_preview = new uint8_t[1920 * 1080 * 3];
+
+std::vector<CustomSlider> sliders;
+int slider_height = 40;
+int mouse_down_slider_index = -1;
+
+bool on_sliderspane_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
+    Gtk::Allocation allocation = gCustomSlidersPane->get_allocation();
+    const int width = allocation.get_width();
+    const int height = allocation.get_height();
+
+    // coordinates for the center of the window
+    int xc, yc;
+    xc = width / 2;
+    yc = height / 2;
+
+    cr->set_line_width(10.0);
+
+    // draw red lines out from the center of the window
+    cr->set_source_rgb(0.8, 0.0, 0.0);
+    cr->move_to(0, 0);
+    cr->line_to(xc, yc);
+    cr->line_to(0, height);
+    cr->move_to(xc, yc);
+    cr->line_to(width, yc);
+    cr->stroke();
+
+    int y = 0;
+    int h = slider_height;
+    for (CustomSlider slider : sliders) {
+        slider.draw(0, y, width, h, cr);
+        y += h;
+    }
+
+    return true;
+}
+
+bool on_sliderspane_press_event(GdkEventButton *e) {
+
+    int index = (int)(e->y) / slider_height;
+    if (index < sliders.size()) {
+        mouse_down_slider_index = index;
+        sliders[index].mouseDown(e->x, (int)(e->y) % slider_height);
+    }
+    gCustomSlidersPane->queue_draw();
+    return true;
+}
+
+bool on_sliderspane_release_event(GdkEventButton *e) {
+    mouse_down_slider_index = -1;
+    return true;
+}
+
+bool on_sliderpane_motion(GdkEventMotion *e) {
+    int index = (int)(e->y) / slider_height;
+    if (index < sliders.size()) {
+        if (index != mouse_down_slider_index) {
+            mouse_down_slider_index = -1;
+        }
+        if (mouse_down_slider_index != -1) {
+            sliders[index].mouseDragged(e->x, (int)(e->y) % slider_height);
+        } else {
+            sliders[index].mouseMoved(e->x, (int)(e->y) % slider_height);
+        }
+    }
+    gCustomSlidersPane->queue_draw();
+    return true;
+}
+
+bool on_sliderpane_scroll(GdkEventScroll *e) {
+    int index = (int)(e->y) / slider_height;
+    if (index < sliders.size()) {
+        sliders[index].mouseScrolled(e->direction);
+    }
+    gCustomSlidersPane->queue_draw();
+    return true;
+}
 
 bool on_imagepane_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
     Gtk::Allocation allocation = gImage->get_allocation();
@@ -34,6 +112,7 @@ bool on_imagepane_draw(const Cairo::RefPtr<Cairo::Context> &cr) {
 
     return true;
 }
+
 
 bool on_imagepane_scroll(GdkEventScroll *e) {
     doubleImage->setForceAutoscalingImage(false);
@@ -142,6 +221,23 @@ int main(int argc, char **argv) {
         refBuilder->get_widget("sldExposure", sldExposure);
         sldExposure->signal_value_changed().connect(sigc::ptr_fun(on_slider_changed));
 
+        sliders.emplace_back(CustomSlider("Exposure", -2.0, 2.0, 0.0, [&](double val) {
+            doubleImage->set_exposure(val);
+            gImage->queue_draw();
+        }));
+
+        refBuilder->get_widget("gCustomSlidersPane", gCustomSlidersPane);
+        if (gCustomSlidersPane) {
+            std::cout << "kex" << std::endl;
+
+            gCustomSlidersPane->add_events(Gdk::ALL_EVENTS_MASK);
+
+            gCustomSlidersPane->signal_draw().connect(sigc::ptr_fun(on_sliderspane_draw));
+            gCustomSlidersPane->signal_scroll_event().connect(sigc::ptr_fun(on_sliderpane_scroll));
+            gCustomSlidersPane->signal_button_press_event().connect(sigc::ptr_fun(on_sliderspane_press_event));
+            gCustomSlidersPane->signal_button_release_event().connect(sigc::ptr_fun(on_sliderspane_release_event));
+            gCustomSlidersPane->signal_motion_notify_event().connect(sigc::ptr_fun(on_sliderpane_motion));
+        }
         app->run(*pWindow);
     }
 
