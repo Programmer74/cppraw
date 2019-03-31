@@ -12,6 +12,10 @@ double CustomSlider::getValue() {
     return value;
 }
 
+void CustomSlider::setDefaultValue(double defaultValue) {
+    CustomSlider::defaultValue = defaultValue;
+}
+
 int CustomSlider::getDraggerX(double value, int w) {
     return marginLeft + (value - from) / (to - from) * (w - marginLeft - marginRight);
 }

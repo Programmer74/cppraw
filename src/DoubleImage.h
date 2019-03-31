@@ -24,6 +24,18 @@ public:
 
     void set_contrast(double value);
 
+    void set_wb_gain_r(double rg);
+
+    void set_wb_gain_g(double gg);
+
+    void set_wb_gain_b(double bg);
+
+    double get_wb_gain_r();
+
+    double get_wb_gain_g();
+
+    double get_wb_gain_b();
+
     void setForceCenteringImage(bool forceCenteringImage);
 
     void setForceAutoscalingImage(bool forceAutoscalingImage);

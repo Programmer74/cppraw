@@ -62,6 +62,8 @@ public:
 
     void mouseScrolled(int direction);
 
+    void setDefaultValue(double defaultValue);
+
 private:
     double from, to, value, defaultValue;
     std::string caption;

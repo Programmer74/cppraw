@@ -249,6 +249,21 @@ int main(int argc, char **argv) {
             gImage->queue_draw();
         }, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0));
 
+        sliders.emplace_back(CustomSlider("Reds", 1.0, 3.0, doubleImage->get_wb_gain_r(), [&](double val) {
+            doubleImage->set_wb_gain_r(val);
+            gImage->queue_draw();
+        }, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0));
+
+        sliders.emplace_back(CustomSlider("Greens", 1.0, 3.0, doubleImage->get_wb_gain_g(), [&](double val) {
+            doubleImage->set_wb_gain_g(val);
+            gImage->queue_draw();
+        }, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0));
+
+        sliders.emplace_back(CustomSlider("Blues", 1.0, 3.0, doubleImage->get_wb_gain_b(), [&](double val) {
+            doubleImage->set_wb_gain_b(val);
+            gImage->queue_draw();
+        }, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0));
+
         refBuilder->get_widget("gCustomSlidersPane", gCustomSlidersPane);
         if (gCustomSlidersPane) {
             std::cout << "kex" << std::endl;

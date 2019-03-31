@@ -14,6 +14,10 @@ double exposureStop = 0;
 double brightness = 0;
 double contrast = 1.0;
 
+double rWb = 1.0;
+double gWb = 1.0;
+double bWb = 1.0;
+
 void DoubleImage::set_color(int x, int y, double r, double g, double b) {
     image[x * image_height + y].r = r;
     image[x * image_height + y].g = g;
@@ -42,6 +46,9 @@ inline double adjust_value(double* original) {
 
 void DoubleImage::get_color_adjusted(int x, int y, double *r, double *g, double *b) {
     get_color(x, y, r, g, b);
+    *r *= rWb;
+    *g *= gWb;
+    *b *= bWb;
     adjust_value(r);
     adjust_value(g);
     adjust_value(b);
@@ -63,6 +70,31 @@ void DoubleImage::set_brightness(double value) {
 
 void DoubleImage::set_contrast(double value) {
     contrast = value;
+}
+
+
+void DoubleImage::set_wb_gain_r(double rg) {
+    rWb = rg;
+}
+
+void DoubleImage::set_wb_gain_g(double gg) {
+    gWb = gg;
+}
+
+void DoubleImage::set_wb_gain_b(double bg) {
+    bWb = bg;
+}
+
+double DoubleImage::get_wb_gain_r() {
+    return rWb;
+}
+
+double DoubleImage::get_wb_gain_g() {
+    return gWb;
+}
+
+double DoubleImage::get_wb_gain_b() {
+    return bWb;
 }
 
 void DoubleImage::setForceCenteringImage(bool forceCenteringImage) {
