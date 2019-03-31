@@ -2,21 +2,6 @@
 #include <vector>
 #include "DoubleImage.h"
 
-typedef struct {
-    double r;
-    double g;
-    double b;
-} pixel_t;
-
-pixel_t *image;
-
-double exposureStop = 0;
-double brightness = 0;
-double contrast = 1.0;
-
-double rWb = 1.0;
-double gWb = 1.0;
-double bWb = 1.0;
 
 void DoubleImage::set_color(int x, int y, double r, double g, double b) {
     image[x * image_height + y].r = r;
@@ -30,71 +15,60 @@ void DoubleImage::get_color(int x, int y, double *r, double *g, double *b) {
     *b = image[x * image_height + y].b;
 }
 
-inline double adjust_exposure(double* original) {
-    *original = *original * std::pow(2, exposureStop);
+inline double DoubleImage::adjust_exposure(double *original, double stop) {
+    *original = *original * std::pow(2, stop);
 }
 
-inline double adjust_bc(double* original) {
-    double contrasted = (*original - 0.5) * contrast + 0.5;
-    *original = contrasted + brightness;
+inline double DoubleImage::adjust_exposure(double *original) {
+    adjust_exposure(original, adjustments->exposureStop);
 }
 
-inline double adjust_value(double* original) {
+inline double DoubleImage::adjust_bc(double *original) {
+    double contrasted = (*original - 0.5) * adjustments->contrast + 0.5;
+    *original = contrasted + adjustments->brightness;
+}
+
+inline double DoubleImage::adjust_value(double *original) {
     adjust_exposure(original);
     adjust_bc(original);
 }
 
 void DoubleImage::get_color_adjusted(int x, int y, double *r, double *g, double *b) {
     get_color(x, y, r, g, b);
-    *r *= rWb;
-    *g *= gWb;
-    *b *= bWb;
+    double origr = *r;
+    double origg = *g;
+    double origb = *b;
+    *r *= adjustments->rWb;
+    *g *= adjustments->gWb;
+    *b *= adjustments->bWb;
     adjust_value(r);
     adjust_value(g);
     adjust_value(b);
+    if (adjustments->b_treshold != 0.0) {
+        if ((*r + *g + *b) / 3 <= adjustments->b_treshold) {
+            adjust_exposure(&origr, adjustments->b_exposureStop);
+            adjust_exposure(&origg, adjustments->b_exposureStop);
+            adjust_exposure(&origb, adjustments->b_exposureStop);
+
+            adjust_bc(&origr);
+            adjust_bc(&origg);
+            adjust_bc(&origb);
+            *r = origr;
+            *g = origg;
+            *b = origb;
+        }
+    }
 }
 
 DoubleImage::DoubleImage(int _width, int _height) {
     image_width = _width;
     image_height = _height;
     image = (pixel_t *) std::malloc(image_width * image_height * 3 * sizeof(pixel_t));
+    adjustments = new ImageAdjustments();
 }
 
-void DoubleImage::set_exposure(double value) {
-    exposureStop = value;
-}
-
-void DoubleImage::set_brightness(double value) {
-    brightness = value;
-}
-
-void DoubleImage::set_contrast(double value) {
-    contrast = value;
-}
-
-
-void DoubleImage::set_wb_gain_r(double rg) {
-    rWb = rg;
-}
-
-void DoubleImage::set_wb_gain_g(double gg) {
-    gWb = gg;
-}
-
-void DoubleImage::set_wb_gain_b(double bg) {
-    bWb = bg;
-}
-
-double DoubleImage::get_wb_gain_r() {
-    return rWb;
-}
-
-double DoubleImage::get_wb_gain_g() {
-    return gWb;
-}
-
-double DoubleImage::get_wb_gain_b() {
-    return bWb;
+ImageAdjustments *DoubleImage::getAdjustments() const {
+    return adjustments;
 }
 
 void DoubleImage::setForceCenteringImage(bool forceCenteringImage) {
@@ -160,7 +134,7 @@ uint8_t get_safe_val(double original) {
     return val;
 }
 
-void DoubleImage::paintOnBuf(uint8_t* static_image_buf, int pane_width, int pane_height) {
+void DoubleImage::paintOnBuf(uint8_t *static_image_buf, int pane_width, int pane_height) {
     if (!autoscale_performed || force_autoscaling_image) {
         double kx = image_width * 1.0 / pane_width;
         double ky = image_height * 1.0 / pane_height;

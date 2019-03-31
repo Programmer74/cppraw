@@ -5,7 +5,7 @@ include_directories(
         ${GTKMM_INCLUDE_DIRS}  )
 
 add_executable(cppraw
-        main.cpp DoubleImage.cpp DoubleImage.h DoubleImageLoader.cpp DoubleImageLoader.h CustomSlider.cpp CustomSlider.h)
+        main.cpp DoubleImage.cpp DoubleImage.h DoubleImageLoader.cpp DoubleImageLoader.h CustomSlider.cpp CustomSlider.h ImageAdjustments.h)
 
 target_link_libraries(cppraw
         ${GTKMM_LIBRARIES}  )

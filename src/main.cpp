@@ -18,7 +18,6 @@ int old_gimage_height = -1;
 
 Gtk::DrawingArea *gCustomSlidersPane = nullptr;
 Gtk::CheckButton *chbAutoCenter = nullptr;
-Gtk::ScaleButton *sldExposure = nullptr;
 DoubleImage *doubleImage = nullptr;
 
 uint8_t *static_image_buf_for_preview = new uint8_t[1920 * 1080 * 3];
@@ -181,13 +180,6 @@ void on_autocenter_pressed() {
     gImage->queue_draw();
 }
 
-void on_slider_changed(double val) {
-    double exposureStop = (val - 50.0) / 25.0;
-    std::cout << "exposureStop is " << exposureStop << std::endl;
-    doubleImage->set_exposure(exposureStop);
-    gImage->queue_draw();
-}
-
 int main(int argc, char **argv) {
 
     doubleImage = DoubleImageLoader().load_image();
@@ -231,38 +223,45 @@ int main(int argc, char **argv) {
             chbAutoCenter->signal_toggled().connect(sigc::ptr_fun(on_autocenter_pressed));
         }
 
-        refBuilder->get_widget("sldExposure", sldExposure);
-        sldExposure->signal_value_changed().connect(sigc::ptr_fun(on_slider_changed));
-
         sliders.emplace_back(CustomSlider("Exposure", -2.0, 2.0, 0.0, [&](double val) {
-            doubleImage->set_exposure(val);
+            doubleImage->getAdjustments()->exposureStop = val;
             gImage->queue_draw();
         }, 0.3, 0.3, 0.3, 0.7, 0.7, 0.7));
 
         sliders.emplace_back(CustomSlider("Brightness", -1.0, 1.0, 0.0, [&](double val) {
-            doubleImage->set_brightness(val);
+            doubleImage->getAdjustments()->brightness = val;
             gImage->queue_draw();
         }, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0));
 
         sliders.emplace_back(CustomSlider("Contrast", 0.0, 2.0, 1.0, [&](double val) {
-            doubleImage->set_contrast(val);
+            doubleImage->getAdjustments()->contrast = val;
             gImage->queue_draw();
         }, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0));
 
-        sliders.emplace_back(CustomSlider("Reds", 1.0, 3.0, doubleImage->get_wb_gain_r(), [&](double val) {
-            doubleImage->set_wb_gain_r(val);
+        sliders.emplace_back(CustomSlider("Reds", 1.0, 3.0, doubleImage->getAdjustments()->rWb, [&](double val) {
+            doubleImage->getAdjustments()->rWb = val;
             gImage->queue_draw();
         }, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0));
 
-        sliders.emplace_back(CustomSlider("Greens", 1.0, 3.0, doubleImage->get_wb_gain_g(), [&](double val) {
-            doubleImage->set_wb_gain_g(val);
+        sliders.emplace_back(CustomSlider("Greens", 1.0, 3.0, doubleImage->getAdjustments()->gWb, [&](double val) {
+            doubleImage->getAdjustments()->gWb = val;
             gImage->queue_draw();
         }, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0));
 
-        sliders.emplace_back(CustomSlider("Blues", 1.0, 3.0, doubleImage->get_wb_gain_b(), [&](double val) {
-            doubleImage->set_wb_gain_b(val);
+        sliders.emplace_back(CustomSlider("Blues", 1.0, 3.0, doubleImage->getAdjustments()->bWb, [&](double val) {
+            doubleImage->getAdjustments()->bWb = val;
             gImage->queue_draw();
         }, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0));
+
+        sliders.emplace_back(CustomSlider("B Threshold", 0.0, 1.0, -1.0, [&](double val) {
+            doubleImage->getAdjustments()->b_treshold = val;
+            gImage->queue_draw();
+        }, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0));
+
+        sliders.emplace_back(CustomSlider("B Exposure", -2.0, 2.0, 0.0, [&](double val) {
+            doubleImage->getAdjustments()->b_exposureStop = val;
+            gImage->queue_draw();
+        }, 0.3, 0.3, 0.3, 0.7, 0.7, 0.7));
 
         refBuilder->get_widget("gCustomSlidersPane", gCustomSlidersPane);
         if (gCustomSlidersPane) {

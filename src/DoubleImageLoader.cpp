@@ -126,9 +126,9 @@ DoubleImage* DoubleImageLoader::load_image() {
     double gk = mx / sumG;
     double bk = mx / sumB;
 
-    ans->set_wb_gain_r(rk);
-    ans->set_wb_gain_g(gk);
-    ans->set_wb_gain_b(bk);
+    ans->getAdjustments()->rWb = rk;
+    ans->getAdjustments()->gWb = gk;
+    ans->getAdjustments()->bWb = bk;
 
     return ans;
 }

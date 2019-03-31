@@ -4,6 +4,15 @@
 #include <stdint.h>
 #include <iostream>
 
+#include "ImageAdjustments.h"
+
+typedef struct {
+    double r;
+    double g;
+    double b;
+} pixel_t;
+
+
 class DoubleImage {
 public:
     DoubleImage(int _width, int _height);
@@ -17,24 +26,6 @@ public:
     void get_color(int x, int y, double *r, double *g, double *b);
 
     void get_color_adjusted(int x, int y, double *r, double *g, double *b);
-
-    void set_exposure(double value);
-
-    void set_brightness(double value);
-
-    void set_contrast(double value);
-
-    void set_wb_gain_r(double rg);
-
-    void set_wb_gain_g(double gg);
-
-    void set_wb_gain_b(double bg);
-
-    double get_wb_gain_r();
-
-    double get_wb_gain_g();
-
-    double get_wb_gain_b();
 
     void setForceCenteringImage(bool forceCenteringImage);
 
@@ -66,6 +57,8 @@ public:
 
     void paintOnBuf(uint8_t *static_image_buf, int pane_width, int pane_height);
 
+    ImageAdjustments * getAdjustments() const;
+
 private:
     int image_pane_offset_x = 0;
     int image_pane_offset_y = 0;
@@ -80,6 +73,17 @@ private:
     int image_pane_mouse_down_x = -1;
     int image_pane_mouse_down_y = -1;
 
+
+    pixel_t *image;
+    ImageAdjustments *adjustments;
+
+    double adjust_exposure(double *original);
+
+    double adjust_bc(double *original);
+
+    double adjust_value(double *original);
+
+    double adjust_exposure(double *original, double stop);
 };
 
 
