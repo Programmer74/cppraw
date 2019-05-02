@@ -112,14 +112,18 @@ DoubleImage* DoubleImageLoader::load_image() {
 
             ans->set_color(x, r, rv, gv, bv);
 
-            pxIndex++;
-            if (pxIndex % 100 == 0) {
+            //pxIndex++;
+            //if (pxIndex % 100 == 0) {
                 sumR += rv;
                 sumG += gv;
                 sumB += bv;
                 pxCount++;
-            }
+            //}
         }
+
+    sumR /= pxCount;
+    sumG /= pxCount;
+    sumB /= pxCount;
 
     double mx = std::max(sumR, std::max(sumG, sumB));
     double rk = mx / sumR;
