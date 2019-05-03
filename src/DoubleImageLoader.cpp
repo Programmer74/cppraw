@@ -89,11 +89,6 @@ DoubleImage* DoubleImageLoader::load_image() {
 
     auto* ans = new DoubleImage(image_width, image_height);
 
-    double sumR = 0.0;
-    double sumG = 0.0;
-    double sumB = 0.0;
-    int pxIndex = 0;
-    int pxCount = 0;
 
     // copy the pixels values
     for (int r = 0; r < rows; r++)
@@ -111,28 +106,7 @@ DoubleImage* DoubleImageLoader::load_image() {
             bv = gA * std::pow(bv, gGamma);
 
             ans->set_color(x, r, rv, gv, bv);
-
-            //pxIndex++;
-            //if (pxIndex % 100 == 0) {
-                sumR += rv;
-                sumG += gv;
-                sumB += bv;
-                pxCount++;
-            //}
         }
-
-    sumR /= pxCount;
-    sumG /= pxCount;
-    sumB /= pxCount;
-
-    double mx = std::max(sumR, std::max(sumG, sumB));
-    double rk = mx / sumR;
-    double gk = mx / sumG;
-    double bk = mx / sumB;
-
-    ans->getAdjustments()->rWb = rk;
-    ans->getAdjustments()->gWb = gk;
-    ans->getAdjustments()->bWb = bk;
-
+    ans->autoAdjustWhiteBalance();
     return ans;
 }

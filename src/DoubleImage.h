@@ -59,6 +59,8 @@ public:
 
     ImageAdjustments * getAdjustments() const;
 
+    void autoAdjustWhiteBalance();
+
 private:
     int image_pane_offset_x = 0;
     int image_pane_offset_y = 0;

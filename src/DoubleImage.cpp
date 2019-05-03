@@ -71,6 +71,31 @@ ImageAdjustments *DoubleImage::getAdjustments() const {
     return adjustments;
 }
 
+void DoubleImage::autoAdjustWhiteBalance() {
+    double sumR = 0.0;
+    double sumG = 0.0;
+    double sumB = 0.0;
+    int pxCount = 0;
+
+    for (int x = 0; x < image_width; x += 10) {
+        for (int y = 0; y < image_height; y += 10) {
+            sumR += image[x * image_height + y].r;
+            sumG += image[x * image_height + y].g;
+            sumB += image[x * image_height + y].b;
+            pxCount++;
+        }
+    }
+
+    sumR /= pxCount;
+    sumG /= pxCount;
+    sumB /= pxCount;
+
+    double max = std::fmax(sumR, std::fmax(sumG, sumB));
+    adjustments->rWb = max / sumR;
+    adjustments->gWb = max / sumG;
+    adjustments->bWb = max / sumB;
+}
+
 void DoubleImage::setForceCenteringImage(bool forceCenteringImage) {
     force_centering_image = forceCenteringImage;
 }
